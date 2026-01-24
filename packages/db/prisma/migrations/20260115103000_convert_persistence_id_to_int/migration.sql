@@ -1,0 +1,1 @@
+-- Removed conversion migration; no-op placeholder to satisfy Prisma.

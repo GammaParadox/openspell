@@ -1,0 +1,260 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    // ============================================
+    // ENV LOADING STRATEGY
+    // ============================================
+    // Single source of truth: apps/shared-assets/base/shared.env
+    // This file contains ALL configuration for all services:
+    //   - Database URL and secrets
+    //   - HTTPS/TLS certificate paths
+    //   - Redis configuration
+    //   - API/Web/Game URLs
+    //   - Rate limiting settings
+    //   - All other shared configuration
+    
+    // ============================================
+    // WEB SERVER
+    // ============================================
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Web Server",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--inspect"],
+      "program": "${workspaceFolder}/apps/web/web-server.js",
+      "cwd": "${workspaceFolder}/apps/web",
+      "envFile": "${workspaceFolder}/apps/shared-assets/base/shared.env",
+      "env": {
+        "NODE_ENV": "development"
+      },
+      "console": "integratedTerminal",
+      "restart": true
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Web Server (HTTPS)",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--inspect"],
+      "program": "${workspaceFolder}/apps/web/web-server.js",
+      "cwd": "${workspaceFolder}/apps/web",
+      "envFile": "${workspaceFolder}/apps/shared-assets/base/shared.env",
+      "env": {
+        "NODE_ENV": "development",
+        "USE_HTTPS": "true",
+        "ALLOW_INSECURE_HTTPS": "true"
+      },
+      "console": "integratedTerminal",
+      "restart": true
+    },
+    
+    // ============================================
+    // API SERVER
+    // ============================================
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug API Server",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--inspect"],
+      "program": "${workspaceFolder}/apps/api/api-server.js",
+      "cwd": "${workspaceFolder}/apps/api",
+      "envFile": "${workspaceFolder}/apps/shared-assets/base/shared.env",
+      "env": {
+        "NODE_ENV": "development"
+      },
+      "console": "integratedTerminal",
+      "restart": true
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug API Server (HTTPS)",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--inspect"],
+      "program": "${workspaceFolder}/apps/api/api-server.js",
+      "cwd": "${workspaceFolder}/apps/api",
+      "envFile": "${workspaceFolder}/apps/shared-assets/base/shared.env",
+      "env": {
+        "NODE_ENV": "development",
+        "USE_HTTPS": "true"
+      },
+      "console": "integratedTerminal",
+      "restart": true
+    },
+
+    // ============================================
+    // GAME SERVER
+    // ============================================
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Game Server",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "--inspect",
+        "--require",
+        "ts-node/register"
+      ],
+      "args": [
+        "${workspaceFolder}/apps/game/src/index.ts"
+      ],
+      "cwd": "${workspaceFolder}/apps/game",
+      "envFile": "${workspaceFolder}/apps/shared-assets/base/shared.env",
+      "env": {
+        "NODE_ENV": "development"
+      },
+      "console": "integratedTerminal",
+      "restart": true,
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "outputCapture": "std",
+      "sourceMaps": true
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Game Server (HTTPS)",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "--inspect",
+        "--require",
+        "ts-node/register"
+      ],
+      "args": [
+        "${workspaceFolder}/apps/game/src/index.ts"
+      ],
+      "cwd": "${workspaceFolder}/apps/game",
+      "envFile": "${workspaceFolder}/apps/shared-assets/base/shared.env",
+      "env": {
+        "NODE_ENV": "development",
+        "USE_HTTPS": "true"
+      },
+      "console": "integratedTerminal",
+      "restart": true,
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "outputCapture": "std",
+      "sourceMaps": true
+    },
+
+    // ============================================
+    // ATTACH DEBUGGER (for running servers)
+    // ============================================
+    {
+      "type": "node",
+      "request": "attach",
+      "name": "Attach to Web Server",
+      "port": 9229,
+      "restart": true,
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    },
+    {
+      "type": "node",
+      "request": "attach",
+      "name": "Attach to API Server",
+      "port": 9230,
+      "restart": true,
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    },
+    {
+      "type": "node",
+      "request": "attach",
+      "name": "Attach to Game Server",
+      "port": 9231,
+      "restart": true,
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Debug All Servers",
+      "configurations": [
+        "Debug Web Server",
+        "Debug API Server",
+        "Debug Game Server"
+      ],
+      "stopAll": true,
+      "presentation": {
+        "hidden": false,
+        "group": "All Servers",
+        "order": 1
+      }
+    },
+    {
+      "name": "Debug All Servers (HTTPS)",
+      "configurations": [
+        "Debug Web Server (HTTPS)",
+        "Debug API Server (HTTPS)",
+        "Debug Game Server (HTTPS)"
+      ],
+      "stopAll": true,
+      "presentation": {
+        "hidden": false,
+        "group": "All Servers",
+        "order": 2
+      }
+    },
+    {
+      "name": "Debug Web + API",
+      "configurations": [
+        "Debug Web Server",
+        "Debug API Server"
+      ],
+      "stopAll": true,
+      "presentation": {
+        "hidden": false,
+        "group": "Web + API",
+        "order": 3
+      }
+    },
+    {
+      "name": "Debug Web + API (HTTPS)",
+      "configurations": [
+        "Debug Web Server (HTTPS)",
+        "Debug API Server (HTTPS)"
+      ],
+      "stopAll": true,
+      "presentation": {
+        "hidden": false,
+        "group": "Web + API",
+        "order": 4
+      }
+    },
+    {
+      "name": "Debug API + Game",
+      "configurations": [
+        "Debug API Server",
+        "Debug Game Server"
+      ],
+      "stopAll": true,
+      "presentation": {
+        "hidden": false,
+        "group": "API + Game",
+        "order": 5
+      }
+    },
+    {
+      "name": "Debug API + Game (HTTPS)",
+      "configurations": [
+        "Debug API Server (HTTPS)",
+        "Debug Game Server (HTTPS)"
+      ],
+      "stopAll": true,
+      "presentation": {
+        "hidden": false,
+        "group": "API + Game",
+        "order": 6
+      }
+    }
+  ]
+}

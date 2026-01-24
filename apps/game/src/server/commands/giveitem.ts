@@ -1,0 +1,159 @@
+import { MessageStyle } from "../../protocol/enums/MessageStyle";
+import type { CommandContext, CommandHandler, GiveItemResult } from "./types";
+
+/**
+ * Maximum items that can be given in a single command.
+ * This prevents abuse and ensures reasonable server load.
+ */
+const MAX_GIVE_AMOUNT = Number.MAX_SAFE_INTEGER;
+
+/**
+ * Parses the item ID argument.
+ * Supports both numeric IDs and potential future item name lookups.
+ */
+function parseItemId(arg: string): number | null {
+  const parsed = parseInt(arg, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return null;
+  }
+  return parsed;
+}
+
+/**
+ * Parses the amount argument with sensible defaults and limits.
+ */
+function parseAmount(arg: string | undefined): number {
+  if (!arg) return 1;
+  
+  const parsed = parseInt(arg, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return 1;
+  }
+  return Math.min(parsed, MAX_GIVE_AMOUNT);
+}
+
+/**
+ * Formats a large number with commas for readability.
+ */
+function formatNumber(num: number): string {
+  return num.toLocaleString("en-US");
+}
+
+/**
+ * /giveitem <itemId> [amount] [username]
+ * 
+ * Gives items to yourself or another player.
+ * 
+ * Examples:
+ *   /giveitem 1          - Give 1 of item #1 to yourself
+ *   /giveitem 1 100      - Give 100 of item #1 to yourself
+ *   /giveitem 1 50 Bob   - Give 50 of item #1 to player "Bob"
+ *   /giveitem 1 50 Bob true - Give 50 of item #1 to player "Bob" as a noted item
+ * 
+ * Notes:
+ *   - Stackable items will stack in existing slots when possible
+ *   - Non-stackable items take one slot each
+ *   - If inventory is full, overflow items are dropped on the ground
+ */
+export const giveitemCommand: CommandHandler = (ctx: CommandContext, args: string[]) => {
+  // Validate arguments
+  if (args.length < 1) {
+    ctx.reply("Usage: /giveitem <itemId> [amount] [username] [noted]", MessageStyle.Warning);
+    return;
+  }
+
+  // Parse item ID
+  const itemId = parseItemId(args[0]);
+  if (itemId === null) {
+    ctx.reply(`Invalid item ID: ${args[0]}`, MessageStyle.Warning);
+    return;
+  }
+
+  // Validate item exists
+  const definition = ctx.getItemDefinition(itemId);
+  if (!definition) {
+    ctx.reply(`Item #${itemId} does not exist`, MessageStyle.Warning);
+    return;
+  }
+
+  // Parse amount
+  const amount = parseAmount(args[1]);
+
+  // Determine target player
+  let targetUserId = ctx.userId;
+  let targetUsername = ctx.username;
+
+  if (args.length >= 3) {
+    const targetName = args.slice(2).join(" "); // Handle spaces in usernames
+    const foundId = ctx.getPlayerIdByUsername(targetName);
+    
+    if (foundId === null) {
+      ctx.reply(`Player "${targetName}" is not online`, MessageStyle.Warning);
+      return;
+    }
+    
+    targetUserId = foundId;
+    targetUsername = targetName;
+  }
+
+  const noted = args.length >= 4 && args[3] === 'true' ? true : false;
+  let result: GiveItemResult;
+  if(noted) {
+    result = ctx.giveItem(targetUserId, itemId, amount, true);
+  } else {
+    result = ctx.giveItem(targetUserId, itemId, amount, false);
+  }
+
+  // Report results
+  const isStackable = definition.isStackable;
+  const amountStr = formatNumber(result.added);
+  const itemNameFormatted = result.added === 1 && !definition.isNamePlural
+    ? result.itemName
+    : result.itemName; // Could add plural logic here if needed
+
+  if (result.added === 0) {
+    if (targetUserId === ctx.userId) {
+      ctx.reply(`Your inventory is full!`, MessageStyle.Red);
+    } else {
+      ctx.reply(`${targetUsername}'s inventory is full!`, MessageStyle.Red);
+    }
+    return;
+  }
+
+  // Success message
+  if (targetUserId === ctx.userId) {
+    ctx.reply(
+      `Added ${amountStr}x ${result.itemName} to your inventory`,
+      MessageStyle.Green
+    );
+  } else {
+    ctx.reply(
+      `Added ${amountStr}x ${result.itemName} to ${targetUsername}'s inventory`,
+      MessageStyle.Green
+    );
+  }
+
+  // Overflow warning
+  if (result.overflow > 0) {
+    const overflowStr = formatNumber(result.overflow);
+    if (targetUserId === ctx.userId) {
+      ctx.reply(
+        `Inventory full! ${overflowStr}x ${result.itemName} was dropped.`,
+        MessageStyle.Orange
+      );
+    } else {
+      ctx.reply(
+        `${targetUsername}'s inventory full! ${overflowStr}x ${result.itemName} was dropped.`,
+        MessageStyle.Orange
+      );
+    }
+  }
+
+  // Additional info for non-stackable items
+  if (!isStackable && amount > 1) {
+    ctx.reply(
+      `Note: ${result.itemName} is not stackable (1 per slot)`,
+      MessageStyle.Yellow
+    );
+  }
+};

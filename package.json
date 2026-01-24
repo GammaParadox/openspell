@@ -1,0 +1,10 @@
+{
+	"scripts": {
+		"protocol:generate": "node apps/game/tools/generate-protocol-from-factory.js --overwrite",
+		"postinstall": "pnpm run protocol:generate"
+	},
+	"dependencies": {
+		"dotenv": "^17.2.3",
+		"pngjs": "^7.0.0"
+	}
+}

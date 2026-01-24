@@ -1,0 +1,15 @@
+export enum MessageStyle {
+    Yellow = 0,
+    Blue = 1,
+    Green = 2,
+    Red = 3,
+    Cyan = 4,
+    Purple = 5,
+    Orange = 6,
+    White = 7,
+    Black = 8,
+    Random = 9,
+    Lime = 10,
+    Magenta = 11,
+    Warning = 12,
+  }

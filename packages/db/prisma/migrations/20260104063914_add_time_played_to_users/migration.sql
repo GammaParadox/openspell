@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "users" ADD COLUMN "timePlayed" INTEGER NOT NULL DEFAULT 0;

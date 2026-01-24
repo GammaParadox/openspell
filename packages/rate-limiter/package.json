@@ -1,0 +1,23 @@
+{
+  "name": "@openspell/rate-limiter",
+  "version": "1.0.0",
+  "description": "Shared Redis-based rate limiting for OpenSpell",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "test": "echo \"No tests yet\""
+  },
+  "keywords": [
+    "openspell",
+    "rate-limiter",
+    "redis"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "ioredis": "^5.4.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

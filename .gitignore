@@ -1,0 +1,66 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+**/OLD.env
+**/old.env
+**/*.backup
+apps/shared-assets/base/shared.env
+config/docker.env
+config/docker.env.prod
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+apps/shared-assets/base/js/client/*.js
+
+# Local development TLS certs (mkcert)
+certs/*.pem
+certs/*.key
+certs/*.crt
+certs/*.pfx
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Optional: Ignore large asset files if needed (uncomment if desired)
+# files/
+
+# Custom shared assets
+apps/shared-assets/custom/
+

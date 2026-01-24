@@ -1,0 +1,29 @@
+{
+  "name": "@openspell/db",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "prisma:generate": "dotenv -e ../../apps/shared-assets/base/shared.env -- prisma generate",
+    "prisma:migrate": "dotenv -e ../../apps/shared-assets/base/shared.env -- prisma migrate deploy",
+    "prisma:migrate:dev": "dotenv -e ../../apps/shared-assets/base/shared.env -- prisma migrate dev",
+    "prisma:reset": "dotenv -e ../../apps/shared-assets/base/shared.env -- prisma migrate reset --skip-seed && dotenv -e ../../apps/shared-assets/base/shared.env -- node prisma/seed.js",
+    "prisma:studio": "dotenv -e ../../apps/shared-assets/base/shared.env -- prisma studio",
+    "prisma:seed": "dotenv -e ../../apps/shared-assets/base/shared.env -- node prisma/seed.js",
+    "prisma:setup": "dotenv -e ../../apps/shared-assets/base/shared.env -- prisma migrate deploy && dotenv -e ../../apps/shared-assets/base/shared.env -- node prisma/seed.js",
+    "prisma:anti-cheat-seed": "dotenv -e ../../apps/shared-assets/base/shared.env -- node prisma/populate-anti-cheat.js",
+    "postinstall": "prisma generate"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.19.1",
+    "bcryptjs": "^2.4.3"
+  },
+  "devDependencies": {
+    "dotenv-cli": "^11.0.0",
+    "prisma": "^5.19.1"
+  },
+  "prisma": {
+    "schema": "prisma/schema.prisma"
+  }
+}

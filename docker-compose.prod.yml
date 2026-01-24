@@ -1,0 +1,24 @@
+services:
+  api:
+    image: ${REGISTRY:-ghcr.io/openspell}/api:${IMAGE_TAG:-latest}
+    build: null
+    env_file:
+      - ./config/docker.env.prod
+
+  web:
+    image: ${REGISTRY:-ghcr.io/openspell}/web:${IMAGE_TAG:-latest}
+    build: null
+    env_file:
+      - ./config/docker.env.prod
+
+  game:
+    image: ${REGISTRY:-ghcr.io/openspell}/game:${IMAGE_TAG:-latest}
+    build: null
+    env_file:
+      - ./config/docker.env.prod
+
+  migrate:
+    image: ${REGISTRY:-ghcr.io/openspell}/api:${IMAGE_TAG:-latest}
+    build: null
+    env_file:
+      - ./config/docker.env.prod

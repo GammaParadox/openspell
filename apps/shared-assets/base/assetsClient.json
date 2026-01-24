@@ -1,0 +1,49 @@
+{
+    "code": 1,
+    "msg": "ok",
+    "data": {
+        "latestClientVersion": 61,
+        "latestServerVersion": 61,
+        "files": {
+            "defs": {
+                "itemDefs": "https://highspell.com:8887/static/itemdefs.33.carbon",
+                "worldEntityDefs": "https://highspell.com:8887/static/worldentitydefs.13.carbon",
+                "worldEntities": "https://highspell.com:8887/static/worldentities.26.carbon",
+                "npcEntityDefs": "https://highspell.com:8887/static/npcentitydefs.22.carbon",
+                "npcEntities": "https://highspell.com:8887/static/npcentities.16.carbon",
+                "instancedNpcEntities": "https://highspell.com:8887/static/instancednpcentities.5.carbon",
+                "shopDefs": "https://highspell.com:8887/static/shopdefs.11.carbon",
+                "conversationDefs": "https://highspell.com:8887/static/conversationdefs.7.carbon",
+                "groundItems": "https://highspell.com:8887/static/grounditems.11.carbon",
+                "spellDefs": "https://highspell.com:8887/static/spelldefs.10.carbon",
+                "npcLoot": "https://highspell.com:8887/static/npcloot.18.carbon",
+                "quests": "https://highspell.com:8887/static/questdefs.3.carbon",
+                "pickpocketDefs": "https://highspell.com:8887/static/pickpocketdefs.5.carbon",
+                "worldEntityLootDefs": "https://highspell.com:8887/static/worldentitylootdefs.12.carbon",
+                "npcConversationDefs": "https://highspell.com:8887/static/npcconversationdefs.2.carbon",
+                "worldEntityActions": "https://highspell.com:8887/static/worldentityactions.3.carbon",
+                "specialCoordinatesDefs": "https://highspell.com:8887/static/specialcoordinatesdefs.3.carbon"
+            },
+            "gameAssets": {
+                "earthOverworldMap": "https://highspell.com:8887/static/assets/heightmaps/earthoverworldtexture.png",
+                "earthUndergroundMap": "https://highspell.com:8887/static/assets/heightmaps/earthundergroundtexture.png",
+                "moonMap": "https://highspell.com:8887/static/assets/heightmaps/moontexture.png",
+                "earthSkyMap": "https://highspell.com:8887/static/assets/heightmaps/earthskytexture.png",
+                "earthOverworldPath": "https://highspell.com:8887/static/assets/heightmaps/earthoverworldpath.png",
+                "earthUndergroundPath": "https://highspell.com:8887/static/assets/heightmaps/earthundergroundpath.png",
+                "moonPath": "https://highspell.com:8887/static/assets/heightmaps/moonpath.png",
+                "earthSkyPath": "https://highspell.com:8887/static/assets/heightmaps/earthskypath.png",
+                "appearance": "https://highspell.com:8887/static/carbon/appearance.41.carbon",
+                "heightmaps": "https://highspell.com:8887/static/carbon/heightmaps.27.carbon",
+                "items": "https://highspell.com:8887/static/carbon/items.49.carbon",
+                "meshes": "https://highspell.com:8887/static/carbon/meshes.47.carbon",
+                "textures": "https://highspell.com:8887/static/carbon/textures.35.carbon",
+                "creatures": "https://highspell.com:8887/static/carbon/creatures.19.carbon",
+                "earthOverworldMinimap": "https://highspell.com:8887/static/assets/heightmaps/earthoverworldmap.png",
+                "earthUndergroundMinimap": "https://highspell.com:8887/static/assets/heightmaps/earthundergroundmap.png",
+                "earthSkyMinimap": "https://highspell.com:8887/static/assets/heightmaps/earthskymap.png",
+                "moonMinimap": "https://highspell.com:8887/static/assets/heightmaps/moonmap.png"
+            }
+        }
+    }
+}

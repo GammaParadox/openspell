@@ -1,0 +1,628 @@
+// Canonical Prisma schema for OpenSpell.
+// Both apps/api and apps/game should use this via the shared package `@openspell/db`.
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                Int       @id @default(autoincrement())
+  username          String    @unique
+  displayName       String?   @unique // Display name shown to other users (admin only, must be unique)
+  email             String    @unique
+  normalizedEmail   String    @unique // Normalized email for uniqueness checking (handles Gmail dots, plus addressing, etc.)
+  previousEmail     String?   // Previous email before last change
+  password          String    // Hashed password
+  isAdmin           Boolean   @default(false) // Admin privileges
+  playerType        Int       @default(0) // Player type: 0=Default, 1=Admin, 2=Mod, 3=PlayerMod (see PlayerType enum)
+  emailVerified     Boolean   @default(false) // Whether email has been verified
+  lastPasswordChange DateTime? // Last time password was changed
+  lastEmailChange   DateTime? // Last time email was changed
+  lastLoginAt       DateTime? // Last time user was sent a LoggedIn packet (game login)
+  timePlayed        Int       @default(0) // Total time played in milliseconds
+  bannedUntil       DateTime? // If set, user is banned until this time (null = permanent ban if banReason is set)
+  banReason         String?   // Reason for the ban (null = not banned)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  // Relations
+  sessions          Session[]
+  onlineUsers       OnlineUser[]
+  gameLoginTokens   GameLoginToken[]
+  emailVerifications EmailVerification[]
+  passwordResets    PasswordReset[]
+  playerSkills      PlayerSkill[]
+  playerLocation    PlayerLocation[]
+  playerEquipment   PlayerEquipment[]
+  playerInventory   PlayerInventory[]
+  playerStateSnapshot PlayerStateSnapshot[]
+  playerAbility     PlayerAbility[]
+  playerSetting     PlayerSetting[]
+  playerBank        PlayerBank[]
+  userIPs           UserIP[]
+  playerQuests      PlayerQuest[]
+  invalidPacketEvents InvalidPacketEvent[]
+  invalidPacketEventRollups InvalidPacketEventRollup[]
+  packetTraceFiles  PacketTraceFile[]
+  itemDropEvents    ItemDropEvent[]
+  itemPickupEvents  ItemPickupEvent[]
+  itemPickupDrops   ItemPickupEvent[] @relation("ItemPickupDropper")
+  shopItemSalesSold ShopItemSaleEvent[] @relation("ShopItemSaleSeller")
+  shopItemSalesBought ShopItemSaleEvent[] @relation("ShopItemSaleBuyer")
+  anomalyAlerts     AnomalyAlert[]
+  anomalyAlertDismissals AnomalyAlert[] @relation("AnomalyAlertDismisser")
+  anomalyAlertActions AnomalyAlertAction[]
+  
+  @@map("users")
+  @@index([lastLoginAt])
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    Int
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("sessions")
+  @@index([token])
+  @@index([userId])
+}
+
+model OnlineUser {
+  id        Int      @id @default(autoincrement())
+  userId    Int      // authenticated user only
+  username  String?  // optional display
+  serverId  Int      @default(1)
+  lastSeen  DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("online_users")
+  @@unique([userId])        // at most one presence per user
+  @@index([serverId])
+  @@index([lastSeen])
+}
+
+// A "World" (aka game server shard) shown on /play and used by /game selection.
+// serverId is the numeric identifier the client + OnlineUser.serverId use.
+model World {
+  id            Int       @id @default(autoincrement())
+  serverId      Int       @unique
+  persistenceId Int       @default(autoincrement())
+  name          String
+  locationName  String    @default("Unknown") // UI tooltip / label (e.g. "USA", "Germany")
+  flagCode      String    @default("USA")     // CSS suffix (e.g. "USA" for c-flag__USA)
+  serverUrl     String    // Full URL the client connects to (e.g. https://server1.openspell.com:8888)
+  isActive      Boolean   @default(true)      // show/allow joins
+  isDevelopment Boolean   @default(false)     // only show in non-production
+  tags          String    @default("")        // comma-separated tags (e.g. "development,pvp,seasonal")
+  sortOrder     Int       @default(0)
+  lastHeartbeat DateTime?                    // updated by /api/worlds/heartbeat or /api/worlds/register
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("worlds")
+  @@index([isActive, isDevelopment, sortOrder])
+  @@index([tags])
+  @@index([lastHeartbeat])
+  @@index([persistenceId])
+}
+
+// Short-lived token used by the game client to initiate a websocket connection.
+// Clients obtain these via POST /getLoginToken (username/password) and present them to the game server.
+model GameLoginToken {
+  id            Int      @id @default(autoincrement())
+  token         String   @unique
+  userId        Int
+  serverId      Int
+  clientVersion Int
+  ip            String?
+  userAgent     String?
+  createdAt     DateTime @default(now())
+  expiresAt     DateTime
+  usedAt        DateTime?
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("game_login_tokens")
+  @@index([serverId])
+  @@index([expiresAt])
+  @@index([usedAt])
+  @@index([userId])
+}
+
+model News {
+  id          Int      @id @default(autoincrement())
+  title       String
+  slug        String   @unique
+  type        String   @default("Game")
+  date        DateTime @default(now())
+  description String
+  picture     String?
+  thumbnail   String?
+  content     String   // HTML content
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("news")
+  @@index([date])
+  @@index([slug])
+}
+
+model EmailVerification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  usedAt    DateTime?
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("email_verifications")
+  @@index([token])
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model PasswordReset {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  usedAt    DateTime?
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("password_resets")
+  @@index([token])
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Skill {
+  id           Int      @id @default(autoincrement())
+  slug         String   @unique // e.g., 'overall', 'hitpoints', 'accuracy'
+  title        String   // Display name, e.g., 'Overall', 'Hitpoints'
+  iconPosition String   // CSS background-position, e.g., '-256px 0'
+  displayOrder Int      @default(0) // Order in which skills appear in the UI
+  clientReference Int?   // Reference to the client's skill enum (0-16)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  playerSkills PlayerSkill[]
+  
+  @@map("skills")
+  @@index([slug])
+  @@index([displayOrder])
+}
+
+model PlayerSkill {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  persistenceId Int
+  skillId      Int
+  level        Int      @default(1) // Actual level based on XP
+  boostedLevel Int      @default(1) // Current effective level (can be boosted by potions/prayers)
+  experience   BigInt   @default(0) // Using BigInt for large XP values
+  rank         Int?     // Cached rank for this skill (null if not ranked)
+  updatedAt    DateTime @updatedAt
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill     Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  
+  @@map("player_skills")
+  @@unique([userId, persistenceId, skillId]) // One skill record per user per persistence per skill
+  @@index([userId, persistenceId])
+  @@index([persistenceId])
+  @@index([skillId])
+  @@index([skillId, rank])
+  @@index([skillId, experience])
+  @@index([rank])
+  @@index([experience])
+}
+
+// Player's last known location for persistence (logout/login spawn).
+// In the client protocol, mapLevel is numeric: 0=underground, 1=overworld, 2=sky.
+// We enforce valid ranges via CHECK constraints in the migration SQL.
+model PlayerLocation {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  persistenceId Int
+  mapLevel  Int
+  x         Int
+  y         Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("player_locations")
+  @@unique([userId, persistenceId])
+  @@index([userId, persistenceId])
+  @@index([persistenceId])
+  @@index([updatedAt])
+}
+
+// The client's protocol has distinct equipment slots (helmet/chest/etc), each represented as either:
+// - null (no item equipped), or
+// - [itemDefId, amount]
+// We persist each slot as a row so it can be individually updated and queried efficiently.
+enum EquipmentSlot {
+  helmet
+  chest
+  legs
+  boots
+  neck
+  weapon
+  shield
+  back
+  gloves
+  projectile
+}
+
+model PlayerEquipment {
+  id        Int           @id @default(autoincrement())
+  userId    Int
+  persistenceId Int
+  slot      EquipmentSlot
+  itemDefId Int?
+  amount    Int?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("player_equipment")
+  @@unique([userId, persistenceId, slot])
+  @@index([userId, persistenceId])
+  @@index([persistenceId])
+  @@index([slot])
+  @@index([updatedAt])
+}
+
+// Player's inventory items (28 slots, indexed 0-27).
+// Each slot can contain null (empty) or [itemId, amount, isIOU].
+// isIOU: 0 = regular item, 1 = IOU (bank note) representation.
+model PlayerInventory {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  persistenceId Int
+  slot      Int      // 0-27 for standard 28-slot inventory
+  itemId    Int
+  amount    BigInt   @default(0)
+  isIOU     Int      @default(0) // 0 or 1
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("player_inventory")
+  @@unique([userId, persistenceId, slot]) // One item per slot per user per persistence
+  @@index([userId, persistenceId])        // Fast lookup for user's full inventory
+  @@index([persistenceId])
+  @@index([userId, persistenceId, slot])  // Composite index for individual slot access
+  @@index([updatedAt])     // For cleanup/maintenance queries
+}
+
+model PlayerStateSnapshot {
+  userId    Int
+  persistenceId Int
+  state     Json
+  version   Int   @default(0)
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("player_state_snapshots")
+  @@id([userId, persistenceId])
+  @@index([userId, persistenceId])
+  @@index([persistenceId])
+}
+
+model PlayerBank {
+  userId    Int
+  persistenceId Int
+  items     Json     // Array of 500 item pairs: [itemId, amount] or null
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("player_banks")
+  @@id([userId, persistenceId])
+  @@index([userId, persistenceId])
+  @@index([persistenceId])
+}
+
+model PlayerAbility {
+  userId    Int
+  persistenceId Int
+  values    Json
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("player_abilities")
+  @@id([userId, persistenceId])
+  @@index([userId, persistenceId])
+  @@index([persistenceId])
+}
+
+model PlayerSetting {
+  userId    Int
+  persistenceId Int
+  data      Json
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("player_settings")
+  @@id([userId, persistenceId])
+  @@index([userId, persistenceId])
+  @@index([persistenceId])
+}
+
+// Tracks all unique IP addresses that a user has logged in from.
+// Used for IP-based ban enforcement and security tracking.
+model UserIP {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  ip        String   // IPv4 or IPv6 address
+  firstSeen DateTime @default(now())
+  lastSeen  DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_ips")
+  @@unique([userId, ip]) // One record per user per unique IP
+  @@index([userId])
+  @@index([ip])
+  @@index([lastSeen])
+}
+
+// Tracks IP addresses that are banned from the game.
+// IP bans are separate from user bans and apply to all accounts using that IP.
+model IPBan {
+  id          Int       @id @default(autoincrement())
+  ip          String    @unique // IPv4 or IPv6 address
+  bannedUntil DateTime? // If null, ban is permanent
+  banReason   String    // Reason for the IP ban
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("ip_bans")
+  @@index([ip])
+  @@index([bannedUntil])
+}
+
+// Tracks player quest progress and checkpoints.
+// Each quest has a numeric ID and the player progresses through numbered checkpoints.
+model PlayerQuest {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  persistenceId Int
+  questId    Int      // Quest definition ID
+  checkpoint Int      @default(0) // Current checkpoint/step in the quest
+  completed  Boolean  @default(false) // Whether the quest is fully completed
+  updatedAt  DateTime @updatedAt
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("player_quests")
+  @@unique([userId, persistenceId, questId]) // One progress entry per quest per user/persistence
+  @@index([userId, persistenceId]) // Fast lookup of all quests for a user
+  @@index([persistenceId])
+  @@index([questId]) // Fast lookup of all players on a specific quest
+  @@index([userId, persistenceId, questId]) // Composite index for specific quest lookup
+}
+
+// Logs invalid/malformed client packets with dedupe support.
+model InvalidPacketEvent {
+  id           Int      @id @default(autoincrement())
+  userId       Int?
+  serverId     Int?
+  actionType   Int?
+  packetName   String
+  reason       String
+  payloadHash  String
+  payloadSample Json?
+  details      Json?
+  occurredAt   DateTime @default(now())
+  count        Int      @default(1)
+
+  user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("invalid_packet_events")
+  @@index([userId])
+  @@index([serverId])
+  @@index([actionType])
+  @@index([packetName])
+  @@index([occurredAt])
+  @@index([payloadHash])
+}
+
+// Rollup table for invalid packet trends (hourly/daily buckets).
+model InvalidPacketEventRollup {
+  id          Int      @id @default(autoincrement())
+  userId      Int?
+  serverId    Int?
+  actionType  Int?
+  packetName  String
+  reason      String
+  bucketStart DateTime
+  count       Int      @default(0)
+
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("invalid_packet_event_rollups")
+  @@index([userId])
+  @@index([serverId])
+  @@index([actionType])
+  @@index([packetName])
+  @@index([bucketStart])
+  @@unique([userId, serverId, actionType, packetName, reason, bucketStart])
+}
+
+// Metadata for packet trace files stored on disk.
+model PacketTraceFile {
+  id          Int      @id @default(autoincrement())
+  userId      Int?
+  serverId    Int?
+  bucketStart DateTime
+  bucketEnd   DateTime
+  packetCount Int
+  filePath    String
+  byteCount   Int
+  sha256      String?
+  createdAt   DateTime @default(now())
+
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("packet_trace_files")
+  @@index([userId])
+  @@index([serverId])
+  @@index([bucketStart])
+  @@index([bucketEnd])
+}
+
+// Player item drop event (manual drop, death, overflow).
+model ItemDropEvent {
+  id            Int      @id @default(autoincrement())
+  dropperUserId Int
+  itemId        Int
+  amount        BigInt
+  isIOU         Int      @default(0)
+  mapLevel      Int
+  x             Int
+  y             Int
+  serverId      Int?
+  groundItemId  Int?
+  droppedAt     DateTime @default(now())
+
+  dropper       User     @relation(fields: [dropperUserId], references: [id], onDelete: Cascade)
+
+  @@map("item_drop_events")
+  @@index([dropperUserId])
+  @@index([itemId])
+  @@index([groundItemId])
+  @@index([droppedAt])
+}
+
+// Player item pickup event, optionally linked to a known dropper.
+model ItemPickupEvent {
+  id            Int      @id @default(autoincrement())
+  pickerUserId  Int
+  dropperUserId Int?
+  itemId        Int
+  amount        BigInt
+  isIOU         Int      @default(0)
+  mapLevel      Int
+  x             Int
+  y             Int
+  serverId      Int?
+  groundItemId  Int?
+  pickedUpAt    DateTime @default(now())
+
+  picker        User     @relation(fields: [pickerUserId], references: [id], onDelete: Cascade)
+  dropper       User?    @relation("ItemPickupDropper", fields: [dropperUserId], references: [id], onDelete: SetNull)
+
+  @@map("item_pickup_events")
+  @@index([pickerUserId])
+  @@index([dropperUserId])
+  @@index([itemId])
+  @@index([groundItemId])
+  @@index([pickedUpAt])
+}
+
+// Tracks player-sold shop items and the eventual buyer.
+model ShopItemSaleEvent {
+  id          Int      @id @default(autoincrement())
+  sellerUserId Int
+  buyerUserId  Int
+  shopId      Int
+  itemId      Int
+  amount      Int
+  priceEach   Int
+  totalPrice  Int
+  serverId    Int?
+  soldAt      DateTime @default(now())
+
+  seller      User     @relation("ShopItemSaleSeller", fields: [sellerUserId], references: [id], onDelete: Cascade)
+  buyer       User     @relation("ShopItemSaleBuyer", fields: [buyerUserId], references: [id], onDelete: Cascade)
+
+  @@map("shop_item_sale_events")
+  @@index([sellerUserId])
+  @@index([buyerUserId])
+  @@index([shopId])
+  @@index([itemId])
+  @@index([soldAt])
+}
+
+// Anti-cheat alert generated by realtime rules or analyzers.
+model AnomalyAlert {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  severity        String   // LOW, MEDIUM, HIGH, CRITICAL
+  category        String   // PACKET_ABUSE, ITEM_DUPE, WEALTH_SPIKE, etc.
+  description     String
+  evidence        Json
+  detectedAt      DateTime @default(now())
+  source          String   // REALTIME, ANALYZER
+  serverId        Int?
+  relatedEntityId Int?
+  dismissed       Boolean  @default(false)
+  dismissedBy     Int?
+  dismissedAt     DateTime?
+  discordNotifiedAt DateTime?
+  emailNotifiedAt DateTime?
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dismisser       User?    @relation("AnomalyAlertDismisser", fields: [dismissedBy], references: [id], onDelete: SetNull)
+  actions         AnomalyAlertAction[]
+
+  @@map("anomaly_alerts")
+  @@index([userId, dismissed])
+  @@index([severity, dismissed])
+  @@index([category, dismissed])
+  @@index([detectedAt])
+}
+
+// Tracks admin actions taken on alerts.
+model AnomalyAlertAction {
+  id          Int      @id @default(autoincrement())
+  alertId     Int
+  actorUserId Int
+  action      String   // DISMISS, BAN, UNBAN, NOTE
+  note        String?
+  createdAt   DateTime @default(now())
+
+  alert       AnomalyAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  actor       User         @relation(fields: [actorUserId], references: [id], onDelete: Cascade)
+
+  @@map("anomaly_alert_actions")
+  @@index([alertId])
+  @@index([actorUserId])
+  @@index([createdAt])
+}
+
+// Stores auto-tuned or manual threshold overrides for anti-cheat.
+model AntiCheatThresholdOverride {
+  key       String   @id
+  value     Float
+  source    String?  // AUTO, MANUAL
+  reason    String?
+  updatedAt DateTime @updatedAt
+
+  @@map("anti_cheat_threshold_overrides")
+}
